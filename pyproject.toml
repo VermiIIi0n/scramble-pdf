@@ -1,0 +1,141 @@
+[tool.poetry]
+name = "scramblepdf"
+version = "0.1.1"
+description = ""
+authors = ["VermiIIi0n <dungeon.behind0t@icloud.com>"]
+readme = "README.md"
+packages = [{ include = "scramblepdf" }]
+license = "MIT"
+homepage = "https://github.com/VermiIIi0n/scramble-pdf"
+
+keywords = [
+    "utilities",
+]
+
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Framework :: Pytest",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Utilities",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Python :: Implementation :: PyPy",
+    "Operating System :: OS Independent",
+    "Typing :: Typed",
+]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+pikepdf = "^9.7.0"
+fonttools = "^4.57.0"
+
+[tool.poetry.extras]
+
+[tool.poetry.group.dev.dependencies]
+
+# coveralls = ">3.3.1"
+# sphinx-autoapi = "^2.1.0"
+# sphinx-autodoc-typehints = "^1.22"
+toml = "^0.10.2"
+pytest = "^8.0.0"
+pytest-asyncio = "^0.23.5"
+pytest-cov = "^4.1.0"
+coverage = { extras = ["toml"], version = "^7.4.1" }
+mypy = "^1.8.0"
+types-toml = "^0.10.8.7"
+autopep8 = "^2.0.4"
+
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError.*",
+    "return NotImplemented",
+    "warnings\\.warn.*",
+    "def main()",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "except ImportError",
+    "@overload",
+    "@abstractmethod",
+]
+include = ["scramblepdf/*"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+addopts = "--verbose --cov-append --cov-report term --cov scramblepdf"
+
+[tool.mypy]
+enable_error_code = [
+    "type-var",
+    "call-overload",
+    "abstract",
+    "override",
+    "unused-awaitable",
+    "unused-coroutine",
+    "var-annotated",
+    "index",
+    "assignment",
+    "var-annotated",
+    "misc",
+    "redundant-cast",
+    "comparison-overlap",
+    "redundant-expr",
+    "truthy-bool",
+]
+disable_error_code = [
+    "type-arg",
+    "no-untyped-def",
+    "no-untyped-call",
+    "no-redef",
+]
+# plugins = "pydantic.mypy"
+ignore_missing_imports = true
+no_implicit_optional = false
+warn_redundant_casts = true
+warn_unused_ignores = true
+show_column_numbers = true
+show_error_context = true
+check_untyped_defs = true
+warn_unreachable = false
+show_error_codes = true
+warn_return_any = false
+warn_no_return = true
+show_traceback = false
+color_output = true
+pretty = true
+
+# [tool.pydantic-mypy]
+# #init_forbid_extra = true
+# #init_typed = true
+# #warn_required_dynamic_aliases = true
+# warn_untyped_fields = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_errors = true
+
+[tool.sphinx-autodoc]
+# Display the docstring of modules, classes, and functions
+# even if they don't have a docstring
+# Possible values: True, False (default: False)
+# Set to True to display the docstring even if it is empty
+# or if the module/class/function doesn't have a docstring.
+member-order = "bysource"
+show-inheritance = true
+undoc-members = true
+
+[tool.poetry.urls]
+"Issues" = "https://github.com/VermiIIi0n/scramble-pdf/issues"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+# [tool.poetry.scripts]
+# scramblepdf = "scramblepdf.cli:run"
