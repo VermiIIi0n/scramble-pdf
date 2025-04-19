@@ -3,6 +3,7 @@ workflow.*
 **/logs
 *.json
 *.pdf
+!tests/testPDF/AIGC.pdf
 !demo_config.json
 exports/
 **/test.*
