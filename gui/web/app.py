@@ -11,7 +11,7 @@ st.set_page_config(
 )
 
 st.title("PDF抗AI处理工具")
-st.write("SDU局域网特供版")
+st.write("SDU特供版")
 
 uploaded_file = st.file_uploader(
     label="上传 PDF 文件并设置处理比例", 
