@@ -11,7 +11,7 @@ If you think this is a terrible idea, I knew it is, and it's probably not for yo
 #### Install Poetry
 
 ```shell
-curl -sSL <https://install.python-poetry.org> | python3 -
+curl -sSL https://install.python-poetry.org | python3 -
 # or follow the instructions on Poetry’s official site.
 ```
 
