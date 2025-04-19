@@ -41,6 +41,8 @@ UNICODE_REGIONS = {
         "ranges": [
             (0x49, 0x49),  # I
             (0x30, 0x39),  # numbers : 0 - 9
+            (0x56FE, 0x56FE),  # 图
+            (0x8868, 0x8868),  # 表
         ],
         "scramble": False   # Don't scramble by default
     },
