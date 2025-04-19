@@ -43,6 +43,18 @@ UNICODE_REGIONS = {
             (0x30, 0x39),  # numbers : 0 - 9
             (0x56FE, 0x56FE),  # 图
             (0x8868, 0x8868),  # 表
+            (0x5C71, 0x5C71),  # 山
+            (0x4E1C, 0x4E1C),  # 东
+            (0x5927, 0x5927),  # 大
+            (0x5B66, 0x5B66),  # 学
+            (0x672C, 0x672C),  # 本
+            (0x79D1, 0x79D1),  # 科
+            (0x6BD5, 0x6BD5),  # 毕
+            (0x4E1A, 0x4E1A),  # 业
+            (0x8BBA, 0x8BBA),  # 论
+            (0x6587, 0x6587),  # 文
+            (0x8BBE, 0x8BBE),  # 设
+            (0x8BA1, 0x8BA1),  # 计
         ],
         "scramble": False   # Don't scramble by default
     },
