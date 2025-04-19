@@ -30,6 +30,7 @@ classifiers = [
 python = "^3.12"
 pikepdf = "^9.7.0"
 fonttools = "^4.57.0"
+streamlit = "^1.44.1"
 
 [tool.poetry.extras]
 
