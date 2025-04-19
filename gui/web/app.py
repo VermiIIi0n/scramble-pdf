@@ -10,7 +10,7 @@ st.set_page_config(
     layout="centered"
 )
 
-st.title("PDF抗AI处理工具")
+st.title("PDF流抗AI检测处理工具")
 st.write("SDU特供版")
 
 uploaded_file = st.file_uploader(
@@ -84,7 +84,7 @@ else:
     scramble_ratio = st.slider("处理比例", min_value=0.0, max_value=1.0, value=0.3, step=0.01)
 
 # 显示参考图
-st.image("gui/web/images/recommended_reference_line_plot.svg", caption="参考调整图，实验数据源于AIGC完全编写的PDF文档，未处理情况下paperYY-AI检测率为92%")
+st.image("gui/web/images/recommended_reference_line_plot.svg", caption="参考本图以选定合适的处理比例，实验数据源于AIGC完全编写的PDF文档，处理前的paperYY-AI检测率为92%")
 
 # 添加测试文件下载按钮
 col1, col2, col3 = st.columns(3)
@@ -131,7 +131,9 @@ st.markdown("""
 ### 说明
 1. 处理完毕后自行使用AI检测服务完成pdf检测
 2. 对于毕设系统，可将pdf打包zip格式提交
-
-### 源码
+3. 开发者尽力确保本程序对论文格式检查造成最低的影响，本程序确保布局与关键字格式上的完美，但对于内容不做保证。在内部测试上，一个0.04/千字的文件，100%处理程度后达到了0.05/千字格式检查错误率。
+### 参考
 https://github.com/VermiIIi0n/scramble-pdf
+
+https://github.com/GrooveWJH/unofficial-sdu-thesis
 """)
