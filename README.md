@@ -44,3 +44,6 @@ python -m scramblepdf input_pdf output_pdf --ratio 0.3
 
 ### Run in WebGUI
 
+```shell
+streamlit run gui/web/app.py
+```
