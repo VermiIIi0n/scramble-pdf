@@ -10,7 +10,7 @@ st.set_page_config(
     layout="centered"
 )
 
-st.title("PDF流抗AI检测处理工具")
+st.title("PDF抗AI检测工具")
 st.write("SDU特供版")
 
 uploaded_file = st.file_uploader(
