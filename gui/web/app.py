@@ -1,6 +1,7 @@
 import streamlit as st
 import os
 import tempfile
+import unicodedata
 from pikepdf import Pdf
 from scramblepdf import scramble_pdf
 
@@ -23,11 +24,19 @@ st.markdown("""
 """)
 
 uploaded_file = st.file_uploader(
-    label="上传 PDF 文件并设置处理比例", 
+    label="上传 PDF 文件并设置处理比例",
     type=['pdf'],
     accept_multiple_files=False,
     help="请上传单个PDF文件，大小不超过20MB"
 )
+
+
+def select_func(c: str) -> bool:
+    return (
+        not unicodedata.category(c).startswith("L")
+        and c in ("图表山东大学本科毕业论文设计")
+    )
+
 
 if uploaded_file is not None:
     # 检查文件大小（20MB = 20 * 1024 * 1024 字节）
@@ -35,13 +44,14 @@ if uploaded_file is not None:
     if file_size > 20:
         st.error(f"文件大小（{file_size:.1f}MB）超过20MB限制，请上传更小的文件。")
     else:
-        scramble_ratio = st.slider("处理比例", min_value=0.0, max_value=1.0, value=0.3, step=0.01)
-        
+        scramble_ratio = st.slider("处理比例", min_value=0.0,
+                                   max_value=1.0, value=0.3, step=0.01)
+
         # 创建三列布局，使按钮居中且宽度为50%
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             start_button = st.button("开始处理", type="secondary", use_container_width=True)
-        
+
         # 修正缩进，确保只有在点击按钮时才处理PDF
         if start_button:
             with st.spinner("正在处理..."):
@@ -59,15 +69,20 @@ if uploaded_file is not None:
                     pdf = Pdf.open(input_path)
                     # 添加调试信息
                     st.info(f"正在使用scramble_ratio={scramble_ratio}处理PDF...")
-                    scramble_pdf(pdf, None, scramble_ratio)
+                    scramble_pdf(
+                        pdf,
+                        scramble_ratio,
+                        selector=select_func,
+                    )
                     pdf.save(output_path)
 
                     # 获取处理前后的文件大小以进行比较
                     input_size = os.path.getsize(input_path) / 1024  # KB
                     output_size = os.path.getsize(output_path) / 1024  # KB
-                    
+
                     # 显示处理成功的信息
-                    st.success(f"PDF处理成功！处理前大小: {input_size:.2f}KB, 处理后大小: {output_size:.2f}KB")
+                    st.success(
+                        f"PDF处理成功！处理前大小: {input_size:.2f}KB, 处理后大小: {output_size:.2f}KB")
 
                     # 读取处理后的PDF并提供下载
                     with open(output_path, 'rb') as file:
@@ -90,10 +105,12 @@ if uploaded_file is not None:
                     os.unlink(input_path)
                     os.unlink(output_path)
 else:
-    scramble_ratio = st.slider("处理比例", min_value=0.0, max_value=1.0, value=0.3, step=0.01)
+    scramble_ratio = st.slider("处理比例", min_value=0.0,
+                               max_value=1.0, value=0.3, step=0.01)
 
 # 显示参考图
-st.image("gui/web/images/recommended_reference_line_plot.svg", caption="本图表示了在测试数据上不同的处理比例对AIGC检测的影响，实验数据源于完全由AIGC编写的PDF文档，处理前的paperYY-AI检测率为92%")
+st.image("gui/web/images/recommended_reference_line_plot.svg",
+         caption="本图表示了在测试数据上不同的处理比例对AIGC检测的影响，实验数据源于完全由AIGC编写的PDF文档，处理前的paperYY-AI检测率为92%")
 
 # 添加测试文件下载按钮
 col1, col2, col3 = st.columns(3)

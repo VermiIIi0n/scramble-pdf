@@ -1,68 +1,8 @@
 import random
 import re
-from math import ceil
-from typing import Optional, Dict, Sequence
+from itertools import chain
+from typing import Container, Callable
 from pikepdf import Pdf
-
-# Combine ranges and default scramble flags
-UNICODE_REGIONS = {
-    "ASCII Non-punctuation": {
-        "ranges": [
-            (0x41, 0x5A),  # A-Z
-            (0x61, 0x7A),  # a-z
-            (0x30, 0x39),  # 0-9
-        ],
-        "scramble": True
-    },
-    "CJK Characters": {
-        "ranges": [
-            (0x4E00, 0x9FFF)  # Basic CJK characters
-        ],
-        "scramble": True
-    },
-    "CJK Symbols": {
-        "ranges": [
-            (0x3000, 0x303F),  # CJK punctuation
-            (0xFF00, 0xFFEF),  # Full-width characters
-        ],
-        "scramble": False
-    },
-    "ASCII Punctuation": {
-        "ranges": [
-            (0x21, 0x2F),  # !"#$%&'()*+,-./
-            (0x3A, 0x40),  # :;<=>?@
-            (0x5B, 0x60),  # [\]^_`
-            (0x7B, 0x7E),  # {|}~
-        ],
-        "scramble": False
-    },
-    "Custom Selection": {
-        # Custom ranges have highest priority
-        "ranges": [
-            (0x49, 0x49),  # I
-            (0x30, 0x39),  # numbers : 0 - 9
-            (0x56FE, 0x56FE),  # 图
-            (0x8868, 0x8868),  # 表
-            (0x5C71, 0x5C71),  # 山
-            (0x4E1C, 0x4E1C),  # 东
-            (0x5927, 0x5927),  # 大
-            (0x5B66, 0x5B66),  # 学
-            (0x672C, 0x672C),  # 本
-            (0x79D1, 0x79D1),  # 科
-            (0x6BD5, 0x6BD5),  # 毕
-            (0x4E1A, 0x4E1A),  # 业
-            (0x8BBA, 0x8BBA),  # 论
-            (0x6587, 0x6587),  # 文
-            (0x8BBE, 0x8BBE),  # 设
-            (0x8BA1, 0x8BA1),  # 计
-        ],
-        "scramble": False   # Don't scramble by default
-    },
-}
-
-
-def in_ranges(codepoint: int, ranges: Sequence[tuple[int, int]]) -> bool:
-    return any(start <= codepoint <= end for start, end in ranges)
 
 
 def parse_cmap(cmap_bytes: bytes) -> list[tuple[str, str]]:
@@ -72,7 +12,7 @@ def parse_cmap(cmap_bytes: bytes) -> list[tuple[str, str]]:
     return re.findall(r"<([0-9A-Fa-f]+)>\s+<([0-9A-Fa-f]+)>", content)
 
 
-def build_cmap(mapping: Dict[str, str]) -> str:
+def build_cmap(mapping: dict[str, str]) -> str:
     max_len = max(len(src) for src in mapping)
     byte_len = max_len // 2
     min_code = '0' * (2*byte_len)
@@ -122,81 +62,70 @@ def build_cmap(mapping: Dict[str, str]) -> str:
 
 def scramble_pdf(
     pdf: Pdf,
-    font_mappings: Optional[Dict[str, Dict[str, str]]] = None,
     ratio: float = 1.0,
-    exclude_codes: Optional[Sequence[str]] = None
+    *,
+    font_mappings: dict[str, dict[str, str]] | None = None,
+    selector: Callable[[str], bool] | Container[str] | None = None,
+    select_as_blacklist: bool = True,
 ) -> None:
-    """
-    Scramble ToUnicode, region flags are now built into UNICODE_REGIONS.
-    exclude_codes: list of hex strings, e.g. ["0041","4E2D"]
-    """
     if font_mappings is None:
         font_mappings = {}
-    if not (0.0 <= ratio <= 1.0):
+    if ratio < 0.0 or ratio > 1.0:
         raise ValueError("Ratio must be between 0.0 and 1.0")
     if ratio == 0.0:
         return
+    if selector is not None and not callable(selector):
+        if isinstance(selector, Container):
+            sel_ctn = selector
+            def selector(x): return x in sel_ctn
+        else:
+            raise ValueError("Selector must be callable or a container")
 
-    exclude_set = set(c.upper() for c in (exclude_codes or []))
-    custom_ranges = UNICODE_REGIONS["Custom Selection"]["ranges"]
-    custom_scramble = UNICODE_REGIONS["Custom Selection"]["scramble"]
-
+    # walk every page, every font, randomize its ToUnicode
     for page in pdf.pages:
-        fonts = page.get('/Resources', {}).get('/Font', {})
+        resources = page.get('/Resources', None)
+        if resources is None:
+            continue
+        fonts = resources.get('/Font', None)
+        if fonts is None:
+            continue
         for font_ref, font_obj in fonts.items():
-            if "/ToUnicode" not in font_obj:
+            if '/ToUnicode' not in font_obj:
                 continue
 
-            basefont = str(font_obj["/BaseFont"])
+            basefont = str(font_obj.get('/BaseFont'))
+            # either reuse a previous shuffle...
             if basefont in font_mappings:
                 mapping = font_mappings[basefont]
             else:
-                raw = font_obj["/ToUnicode"].read_bytes()
+                # parse original ToUnicode CMap
+                cmap_stream = font_obj['/ToUnicode']
+                raw = cmap_stream.read_bytes()
                 entries = parse_cmap(raw)
                 if not entries:
+                    # nothing to shuffle
                     continue
-
-                to_scramble = []
-                to_keep = []
+                to_keep = list[tuple[str, str]]()
+                to_scramble = list[tuple[str, str]]()
                 for src, dst in entries:
-                    dst_hex = dst.upper()
-                    if dst_hex in exclude_set:
+                    dstc = chr(int(dst, 16))
+                    if (
+                        (
+                            selector is None
+                            or (selector(dstc) != select_as_blacklist)
+                        )
+                        and random.random() <= ratio
+                    ):
+                        to_scramble.append((src, dst))
+                    else:
                         to_keep.append((src, dst))
-                        continue
-
-                    code = int(dst_hex, 16)
-                    # Custom ranges have highest priority
-                    if in_ranges(code, custom_ranges):
-                        if custom_scramble:
-                            to_scramble.append((src, dst))
-                        else:
-                            to_keep.append((src, dst))
-                        continue
-
-                    # Process all other ranges according to UNICODE_REGIONS definitions
-                    hit = False
-                    for region in UNICODE_REGIONS.values():
-                        if region is UNICODE_REGIONS["Custom Selection"]:
-                            continue
-                        if region["scramble"] and in_ranges(code, region["ranges"]):
-                            hit = True
-                            break
-
-                    (to_scramble if hit else to_keep).append((src, dst))
-
-                if not to_scramble:
-                    continue
-
                 srcs, dsts = zip(*to_scramble)
-                cutoff = ceil(len(dsts)*(1-ratio))
-                fixed = list(dsts[:cutoff])
-                shuffled = list(dsts[cutoff:])
-                random.shuffle(shuffled)
-                new_dsts = fixed + shuffled
-
-                mapping = {s: d for s, d in to_keep}
-                mapping.update({src: new for src, new in zip(srcs, new_dsts)})
+                ndsts = list(dsts)
+                random.shuffle(ndsts)
+                mapping = dict(chain(zip(srcs, ndsts), to_keep))
                 font_mappings[basefont] = mapping
 
-            new_cmap = build_cmap(mapping)
-            font_obj['/ToUnicode'] = pdf.make_stream(new_cmap.encode('utf-8'))
+            # build a new CMap and replace the stream
+            new_cmap_text = build_cmap(mapping)
+            new_stream = pdf.make_stream(new_cmap_text.encode('utf-8'))
+            font_obj['/ToUnicode'] = new_stream
