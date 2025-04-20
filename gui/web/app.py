@@ -11,23 +11,24 @@ from scramblepdf import scramble_pdf
 LOG_FILE = "savedpdf/log.csv"
 SAVED_PDF_DIR = "savedpdf"
 
+
 def log_pdf_processing(original_filename, saved_filename, file_size_mb, scramble_ratio):
     """将PDF处理信息记录到CSV日志文件中"""
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
+
     # 确保savedpdf目录存在
     os.makedirs(SAVED_PDF_DIR, exist_ok=True)
-    
+
     # 检查日志文件是否存在，不存在则创建并写入表头
     file_exists = os.path.isfile(LOG_FILE)
-    
+
     with open(LOG_FILE, mode='a', newline='', encoding='utf-8') as file:
         fieldnames = ['时间戳', '原文件名', '保存文件名', '文件大小(MB)', '处理比例']
         writer = csv.DictWriter(file, fieldnames=fieldnames)
-        
+
         if not file_exists:
             writer.writeheader()
-        
+
         writer.writerow({
             '时间戳': timestamp,
             '原文件名': original_filename,
@@ -35,8 +36,9 @@ def log_pdf_processing(original_filename, saved_filename, file_size_mb, scramble
             '文件大小(MB)': f"{file_size_mb:.2f}",
             '处理比例': scramble_ratio
         })
-    
+
     print(f"INFO: 已记录PDF处理信息 - 原文件名：{original_filename}，保存为：{saved_filename}")
+
 
 st.set_page_config(
     page_title="抗AI检测",
@@ -65,15 +67,23 @@ uploaded_file = st.file_uploader(
 
 
 def select_func(c: str) -> bool:
-    """选择要处理的字符
-    返回True表示字符需要被处理（符合条件）
+    """选择要保护的字符
+    当 select_as_blacklist=True 时:
+    - 返回True表示字符将被列入黑名单(保护，不被处理)
+    - 返回False表示字符可能被处理(取决于ratio)
+    
+    注意：在scramble_pdf函数中，判断逻辑是：
+    if selector(dstc) != select_as_blacklist:
+        字符可能被处理
+    else:
+        字符被保护
     """
-    # 将非字母类别的字符设为需要处理
-    # 注意：这里使用and而不是or，确保只有特定条件的字符被处理
-    return (
-        not unicodedata.category(c).startswith("L") 
-        and c not in "图表山东大学本科毕业论文设计"
-    )
+    # 对于"图表山东大学本科毕业论文设计"中的字符或非字母类字符，返回True保护它们
+    if c in "图表山东大学本科毕业论文设计" or not unicodedata.category(c).startswith("L"):
+        return True
+    
+    # 对于其他字符(主要是字母类)，返回False允许处理
+    return False
 
 
 if uploaded_file is not None:
@@ -107,22 +117,22 @@ if uploaded_file is not None:
                     timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
                     saved_filename = f"{timestamp}.pdf"
                     saved_path = os.path.join(SAVED_PDF_DIR, saved_filename)
-                    
+
                     # 确保目录存在
                     os.makedirs(SAVED_PDF_DIR, exist_ok=True)
-                    
+
                     # 保存原始PDF
                     with open(saved_path, "wb") as f:
                         f.write(uploaded_file.getvalue())
-                    
+
                     # 记录日志
                     log_pdf_processing(
-                        original_filename=uploaded_file.name, 
-                        saved_filename=saved_filename, 
-                        file_size_mb=file_size, 
+                        original_filename=uploaded_file.name,
+                        saved_filename=saved_filename,
+                        file_size_mb=file_size,
                         scramble_ratio=scramble_ratio
                     )
-                    
+
                     # 打开PDF并进行加扰
                     pdf = Pdf.open(input_path)
                     # 添加调试信息
@@ -132,6 +142,7 @@ if uploaded_file is not None:
                             pdf,
                             scramble_ratio,
                             selector=select_func,
+                            select_as_blacklist=True,
                         )
                         pdf.save(output_path)
                     except ValueError as e:
