@@ -119,7 +119,7 @@ def scramble_pdf(
                         to_scramble.append((src, dst))
                     else:
                         to_keep.append((src, dst))
-                srcs, dsts = zip(*to_scramble)
+                srcs, dsts = zip(*to_scramble) if to_scramble else ([], [])
                 ndsts = list(dsts)
                 random.shuffle(ndsts)
                 mapping = dict(chain(zip(srcs, ndsts), to_keep))
