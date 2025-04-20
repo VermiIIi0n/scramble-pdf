@@ -67,7 +67,7 @@ uploaded_file = st.file_uploader(
 def select_func(c: str) -> bool:
     return (
         not unicodedata.category(c).startswith("L")
-        and c in ("图表山东大学本科毕业论文设计")
+        or c in ("图表山东大学本科毕业论文设计")
     )
 
 
