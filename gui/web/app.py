@@ -2,8 +2,41 @@ import streamlit as st
 import os
 import tempfile
 import unicodedata
+import csv
+import datetime
 from pikepdf import Pdf
 from scramblepdf import scramble_pdf
+
+# 定义日志文件路径
+LOG_FILE = "savedpdf/log.csv"
+SAVED_PDF_DIR = "savedpdf"
+
+def log_pdf_processing(original_filename, saved_filename, file_size_mb, scramble_ratio):
+    """将PDF处理信息记录到CSV日志文件中"""
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    # 确保savedpdf目录存在
+    os.makedirs(SAVED_PDF_DIR, exist_ok=True)
+    
+    # 检查日志文件是否存在，不存在则创建并写入表头
+    file_exists = os.path.isfile(LOG_FILE)
+    
+    with open(LOG_FILE, mode='a', newline='', encoding='utf-8') as file:
+        fieldnames = ['时间戳', '原文件名', '保存文件名', '文件大小(MB)', '处理比例']
+        writer = csv.DictWriter(file, fieldnames=fieldnames)
+        
+        if not file_exists:
+            writer.writeheader()
+        
+        writer.writerow({
+            '时间戳': timestamp,
+            '原文件名': original_filename,
+            '保存文件名': saved_filename,
+            '文件大小(MB)': f"{file_size_mb:.2f}",
+            '处理比例': scramble_ratio
+        })
+    
+    print(f"INFO: 已记录PDF处理信息 - 原文件名：{original_filename}，保存为：{saved_filename}")
 
 st.set_page_config(
     page_title="抗AI检测",
@@ -65,6 +98,26 @@ if uploaded_file is not None:
                     output_path = tmp_output.name
 
                 try:
+                    # 生成时间戳文件名并保存原始PDF
+                    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                    saved_filename = f"{timestamp}.pdf"
+                    saved_path = os.path.join(SAVED_PDF_DIR, saved_filename)
+                    
+                    # 确保目录存在
+                    os.makedirs(SAVED_PDF_DIR, exist_ok=True)
+                    
+                    # 保存原始PDF
+                    with open(saved_path, "wb") as f:
+                        f.write(uploaded_file.getvalue())
+                    
+                    # 记录日志
+                    log_pdf_processing(
+                        original_filename=uploaded_file.name, 
+                        saved_filename=saved_filename, 
+                        file_size_mb=file_size, 
+                        scramble_ratio=scramble_ratio
+                    )
+                    
                     # 打开PDF并进行加扰
                     pdf = Pdf.open(input_path)
                     # 添加调试信息

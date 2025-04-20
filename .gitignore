@@ -2,6 +2,8 @@ noupload
 workflow.*
 **/logs
 *.json
+/savedpdf
+log.csv
 *.pdf
 *.pdf.zip
 !tests/testPDF/AIGC.pdf
