@@ -65,9 +65,14 @@ uploaded_file = st.file_uploader(
 
 
 def select_func(c: str) -> bool:
+    """选择要处理的字符
+    返回True表示字符需要被处理（符合条件）
+    """
+    # 将非字母类别的字符设为需要处理
+    # 注意：这里使用and而不是or，确保只有特定条件的字符被处理
     return (
-        not unicodedata.category(c).startswith("L")
-        or c in ("图表山东大学本科毕业论文设计")
+        not unicodedata.category(c).startswith("L") 
+        and c not in "图表山东大学本科毕业论文设计"
     )
 
 
@@ -122,12 +127,23 @@ if uploaded_file is not None:
                     pdf = Pdf.open(input_path)
                     # 添加调试信息
                     st.info(f"正在使用scramble_ratio={scramble_ratio}处理PDF...")
-                    scramble_pdf(
-                        pdf,
-                        scramble_ratio,
-                        selector=select_func,
-                    )
-                    pdf.save(output_path)
+                    try:
+                        scramble_pdf(
+                            pdf,
+                            scramble_ratio,
+                            selector=select_func,
+                        )
+                        pdf.save(output_path)
+                    except ValueError as e:
+                        if "not enough values to unpack" in str(e):
+                            st.warning("处理过程中没有找到符合条件的字符，尝试使用默认处理方式...")
+                            # 重新打开PDF
+                            pdf = Pdf.open(input_path)
+                            # 使用默认设置处理
+                            scramble_pdf(pdf, scramble_ratio)
+                            pdf.save(output_path)
+                        else:
+                            raise
 
                     # 获取处理前后的文件大小以进行比较
                     input_size = os.path.getsize(input_path) / 1024  # KB
