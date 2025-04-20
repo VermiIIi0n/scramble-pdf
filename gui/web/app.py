@@ -4,6 +4,8 @@ import tempfile
 import unicodedata
 import csv
 import datetime
+import time
+import random
 from pikepdf import Pdf
 from scramblepdf import scramble_pdf
 
@@ -11,6 +13,11 @@ from scramblepdf import scramble_pdf
 LOG_FILE = "savedpdf/log.csv"
 SAVED_PDF_DIR = "savedpdf"
 
+# 定义最大文件大小（MB）
+MAX_FILE_SIZE_MB = 20
+
+# 默认启用处理延迟（模拟处理耗时），但会被UI选项覆盖
+enable_processing_delay = True
 
 def log_pdf_processing(original_filename, saved_filename, file_size_mb, scramble_ratio):
     """将PDF处理信息记录到CSV日志文件中"""
@@ -40,6 +47,7 @@ def log_pdf_processing(original_filename, saved_filename, file_size_mb, scramble
     print(f"INFO: 已记录PDF处理信息 - 原文件名：{original_filename}，保存为：{saved_filename}")
 
 
+
 st.set_page_config(
     page_title="抗AI检测",
     page_icon="🥳",
@@ -48,6 +56,11 @@ st.set_page_config(
 
 st.title("PDF抗AI检测工具")
 st.write("出于网络文本著作内容的保护目的而开发")
+
+# 添加高级选项展开区
+with st.expander("⚙️ 高级选项"):
+    enable_processing_delay = st.checkbox("启用处理延迟", value=True, 
+                              help="启用后，处理过程中会添加2-5秒的随机延迟，以模拟处理时间")
 
 st.markdown("""
 
@@ -58,11 +71,14 @@ st.markdown("""
 若因不当使用（即出于非正当目的的使用）而产生任何法律后果，责任概由使用者自行承担，开发者不对此承担任何责任。
 """)
 
+# 增加文件大小限制提示
+# st.info(f"文件大小限制：{MAX_FILE_SIZE_MB}MB。较大的PDF文件处理可能需要较长时间。")
+
 uploaded_file = st.file_uploader(
     label="上传 PDF 文件并设置处理比例",
     type=['pdf'],
     accept_multiple_files=False,
-    help="请上传单个PDF文件，大小不超过20MB"
+    help=f"请上传单个PDF文件，大小不超过{MAX_FILE_SIZE_MB}MB"
 )
 
 
@@ -87,10 +103,10 @@ def select_func(c: str) -> bool:
 
 
 if uploaded_file is not None:
-    # 检查文件大小（20MB = 20 * 1024 * 1024 字节）
+    # 检查文件大小
     file_size = len(uploaded_file.getvalue()) / (1024 * 1024)  # 转换为 MB
-    if file_size > 20:
-        st.error(f"文件大小（{file_size:.1f}MB）超过20MB限制，请上传更小的文件。")
+    if file_size > MAX_FILE_SIZE_MB:
+        st.error(f"文件大小（{file_size:.1f}MB）超过{MAX_FILE_SIZE_MB}MB限制，请上传更小的文件。")
     else:
         scramble_ratio = st.slider("处理比例", min_value=0.0,
                                    max_value=1.0, value=0.3, step=0.01)
@@ -137,6 +153,12 @@ if uploaded_file is not None:
                     pdf = Pdf.open(input_path)
                     # 添加调试信息
                     st.info(f"正在使用scramble_ratio={scramble_ratio}处理PDF...")
+
+                    # 添加随机延迟，模拟处理时间
+                    if enable_processing_delay:
+                        delay_seconds = random.uniform(2, 5)
+                        time.sleep(delay_seconds)
+                        
                     try:
                         scramble_pdf(
                             pdf,
