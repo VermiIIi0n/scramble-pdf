@@ -57,11 +57,6 @@ st.set_page_config(
 st.title("PDF抗AI检测工具")
 st.write("出于网络文本著作内容的保护目的而开发")
 
-# 添加高级选项展开区
-with st.expander("⚙️ 高级选项"):
-    enable_processing_delay = st.checkbox("启用处理延迟", value=True, 
-                              help="启用后，处理过程中会添加2-5秒的随机延迟，以模拟处理时间")
-
 st.markdown("""
 
 > ### ⚠️免责声明
