@@ -108,7 +108,7 @@ def scramble_pdf(
                 to_keep = list[tuple[str, str]]()
                 to_scramble = list[tuple[str, str]]()
                 for src, dst in entries:
-                    dstc = chr(int(dst, 16))
+                    dstc = bytes.fromhex(dst).decode('utf-16be').strip('\x00')
                     if (
                         (
                             selector is None
