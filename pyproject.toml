@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "scramblepdf"
-version = "0.3.0"
+version = "0.3.1"
 description = ""
 authors = ["VermiIIi0n <dungeon.behind0t@icloud.com>"]
 readme = "README.md"
@@ -30,9 +30,9 @@ classifiers = [
 python = "^3.12"
 pikepdf = "^9.7.0"
 fonttools = "^4.57.0"
-streamlit = "^1.44.1"
 
 [tool.poetry.extras]
+"webui" = ["streamlit"]
 
 [tool.poetry.group.dev.dependencies]
 
@@ -48,6 +48,10 @@ mypy = "^1.8.0"
 types-toml = "^0.10.8.7"
 autopep8 = "^2.0.4"
 
+
+
+[tool.poetry.group.webui.dependencies]
+streamlit = "^1.44.1"
 
 [tool.coverage.run]
 branch = true

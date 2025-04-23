@@ -1,16 +1,28 @@
 # Scramble PDF Text Encodings
 
 <p align="center">
-  <img src="./img/logo.png" alt="描述文字" width="25%" />
+  <img src="./img/logo.png" alt="logo" width="25%" />
 </p>
 
 Make your essay unreadable to simple programs. Still readable by humans and OCR.
 
-If you think this is a terrible idea, I knew it is, and it's probably not for you.
+If you think this is a terrible idea, I know it is, and it's probably not for you.
 
 ## Usage Guide
 
-### Install
+### `pip` Install
+
+```shell
+pip install scramblepdf
+```
+
+or with webui support:
+
+```shell
+pip install "scramblepdf[webui]"
+```
+
+### Local Install
 
 #### Install Poetry
 
