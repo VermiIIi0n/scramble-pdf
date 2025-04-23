@@ -19,7 +19,7 @@ MAX_FILE_SIZE_MB = 20
 # 默认启用处理延迟（模拟处理耗时），但会被UI选项覆盖
 enable_processing_delay = True
 
-def log_pdf_processing(original_filename, saved_filename, file_size_mb, scramble_ratio):
+def log_pdf_processing(original_filename, saved_filename, file_size_mb, scramble_ratio, protected_chars=None):
     """将PDF处理信息记录到CSV日志文件中"""
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
@@ -30,7 +30,7 @@ def log_pdf_processing(original_filename, saved_filename, file_size_mb, scramble
     file_exists = os.path.isfile(LOG_FILE)
 
     with open(LOG_FILE, mode='a', newline='', encoding='utf-8') as file:
-        fieldnames = ['时间戳', '原文件名', '保存文件名', '文件大小(MB)', '处理比例']
+        fieldnames = ['时间戳', '原文件名', '保存文件名', '文件大小(MB)', '处理比例', '保护字符']
         writer = csv.DictWriter(file, fieldnames=fieldnames)
 
         if not file_exists:
@@ -41,7 +41,8 @@ def log_pdf_processing(original_filename, saved_filename, file_size_mb, scramble
             '原文件名': original_filename,
             '保存文件名': saved_filename,
             '文件大小(MB)': f"{file_size_mb:.2f}",
-            '处理比例': scramble_ratio
+            '处理比例': scramble_ratio,
+            '保护字符': protected_chars or ""
         })
 
     print(f"INFO: 已记录PDF处理信息 - 原文件名：{original_filename}，保存为：{saved_filename}")
@@ -76,6 +77,19 @@ uploaded_file = st.file_uploader(
     help=f"请上传单个PDF文件，大小不超过{MAX_FILE_SIZE_MB}MB"
 )
 
+# 添加自定义保护字符输入框
+st.markdown(
+    '''
+    ---
+    保护相关字符以不参与混淆，详情点击下框右侧帮助符号
+    '''
+)
+protected_chars = st.text_input(
+    "自定义保护字符（这些字符将不会被处理）", 
+    value="图表XX大学本科毕业论文设计IV",
+    help="输入您希望保护的字符，字符间无需分隔。例如：图表东京大学本科毕业论文设计IV。本程序强制保护除各语言字母之外的符号（例如：\"您OK\"不受保护，\"123!,?!123\"受保护，不参与混淆），如有特殊需求请自行修改源码。"
+)
+
 
 def select_func(c: str) -> bool:
     """选择要保护的字符
@@ -89,8 +103,8 @@ def select_func(c: str) -> bool:
     else:
         字符被保护
     """
-    # 对于"图表山东大学本科毕业论文设计"中的字符或非字母类字符，返回True保护它们
-    if c in "图表山东大学本科毕业论文设计" or not unicodedata.category(c).startswith("L"):
+    # 对于用户自定义的保护字符或非字母类字符，返回True保护它们
+    if c in protected_chars or not unicodedata.category(c).startswith("L"):
         return True
     
     # 对于其他字符(主要是字母类)，返回False允许处理
@@ -104,7 +118,7 @@ if uploaded_file is not None:
         st.error(f"文件大小（{file_size:.1f}MB）超过{MAX_FILE_SIZE_MB}MB限制，请上传更小的文件。")
     else:
         scramble_ratio = st.slider("处理比例", min_value=0.0,
-                                   max_value=1.0, value=0.3, step=0.01)
+                                   max_value=1.0, value=0.3, step=0.05)
 
         # 创建三列布局，使按钮居中且宽度为50%
         col1, col2, col3 = st.columns([1, 2, 1])
@@ -141,7 +155,8 @@ if uploaded_file is not None:
                         original_filename=uploaded_file.name,
                         saved_filename=saved_filename,
                         file_size_mb=file_size,
-                        scramble_ratio=scramble_ratio
+                        scramble_ratio=scramble_ratio,
+                        protected_chars=protected_chars
                     )
 
                     # 打开PDF并进行加扰
@@ -203,7 +218,7 @@ if uploaded_file is not None:
                     os.unlink(output_path)
 else:
     scramble_ratio = st.slider("处理比例", min_value=0.0,
-                               max_value=1.0, value=0.3, step=0.01)
+                               max_value=1.0, value=0.3, step=0.05)
 
 # 显示参考图
 st.image("gui/web/images/recommended_reference_line_plot.svg",
