@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "scramblepdf"
-version = "0.3.1"
+version = "0.3.2"
 description = ""
 authors = ["VermiIIi0n <dungeon.behind0t@icloud.com>"]
 readme = "README.md"
@@ -142,5 +142,5 @@ undoc-members = true
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-# [tool.poetry.scripts]
-# scramblepdf = "scramblepdf.cli:run"
+[tool.poetry.scripts]
+scramblepdf = "scramblepdf.cli:run"
