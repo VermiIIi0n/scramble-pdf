@@ -108,19 +108,10 @@ def scramble_pdf(
                 to_keep = list[tuple[str, str]]()
                 to_scramble = list[tuple[str, str]]()
                 for src, dst in entries:
-                    try:
-                        # Try decoding with UTF-16BE, ignore errors
-                        dstc = bytes.fromhex(dst).decode('utf-16be', errors='ignore').strip('\\x00')
-                        # Skip empty strings resulting from ignored errors
-                        if not dstc:
-                            to_keep.append((src, dst))
-                            continue
-                    except ValueError:
-                        # Handle potential errors from bytes.fromhex if dst has odd length or invalid chars
-                        to_keep.append((src, dst))
-                        continue
-
+                    dstc = bytes.fromhex(dst).decode(
+                        'utf-16be', errors='ignore').strip('\x00')
                     if (
+                        dstc and
                         (
                             selector is None
                             or (selector(dstc) != select_as_blacklist)

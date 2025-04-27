@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "scramblepdf"
-version = "0.3.2"
+version = "0.3.3"
 description = ""
 authors = ["VermiIIi0n <dungeon.behind0t@icloud.com>"]
 readme = "README.md"
