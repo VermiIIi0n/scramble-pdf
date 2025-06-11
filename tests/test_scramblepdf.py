@@ -9,11 +9,31 @@ from scramblepdf.cli import cli
 import tempfile
 
 def test_parse_cmap():
-    # Test parse_cmap function
-    cmap_bytes = b"beginbfchar\n<0000> <0020>\n<0001> <0021>\nendcmap"
+    # Test parse_cmap with a valid beginbfchar / endbfchar block
+    cmap_bytes = b"beginbfchar\n<0000> <0020>\n<0001> <0021>\nendbfchar"
     expected = [("0000", "0020"), ("0001", "0021")]
-    result = parse_cmap(cmap_bytes)
+    result = list(parse_cmap(cmap_bytes))
     assert result == expected
+
+# Additional coverage for beginbfrange parsing (both direct and array forms)
+def test_parse_cmap_bfrange():
+    # Direct range form
+    cmap_bytes = (
+        b"beginbfrange\n"
+        b"<0000> <0002> <0020>\n"  # maps 0000,0001,0002 -> 0020,0021,0022
+        b"endbfrange"
+    )
+    expected_direct = [("0000", "0020"), ("0001", "0021"), ("0002", "0022")]
+    assert list(parse_cmap(cmap_bytes)) == expected_direct
+
+    # Array form
+    cmap_array_bytes = (
+        b"beginbfrange\n"
+        b"<0003> <0005> [<0030> <0031> <0032>]\n"  # explicit dst list
+        b"endbfrange"
+    )
+    expected_array = [("0003", "0030"), ("0004", "0031"), ("0005", "0032")]
+    assert list(parse_cmap(cmap_array_bytes)) == expected_array
 
 def test_build_cmap():
     # Test build_cmap function
@@ -128,3 +148,14 @@ def test_scramble_pdf_with_aigc():
             pdf.save(temp_output.name)
         except Exception as e:
             pytest.fail(f"scramble_pdf raised an exception: {e}")
+
+def test_build_cmap_large_mapping():
+    # Build a mapping larger than 100 items to trigger multiple beginbfchar blocks
+    mapping = {f"{i:04X}": f"{(i+0x20):04X}" for i in range(150)}
+    cmap_text = build_cmap(mapping)
+    # There should be at least two beginbfchar blocks (first 100, then 50)
+    assert cmap_text.count("beginbfchar") == 2
+    assert cmap_text.count("endbfchar") == 2
+    # Spot-check a couple of mappings
+    assert "<0000> <0020>" in cmap_text
+    assert "<0076> <0096>" in cmap_text

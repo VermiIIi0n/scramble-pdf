@@ -1,15 +1,62 @@
 import random
 import re
 from itertools import chain
-from typing import Container, Callable
+from typing import Container, Callable, Generator
 from pikepdf import Pdf
 
 
-def parse_cmap(cmap_bytes: bytes) -> list[tuple[str, str]]:
-    text = cmap_bytes.decode('utf-8', errors='ignore')
-    block = re.search(r"beginbfchar\s*(.*?)\s*endcmap", text, flags=re.DOTALL)
-    content = block.group(1) if block else text
-    return re.findall(r"<([0-9A-Fa-f]+)>\s+<([0-9A-Fa-f]+)>", content)
+def parse_cmap(cmap_bytes: bytes) -> Generator[tuple[str, str], None, None]:
+    text = cmap_bytes.decode("utf-8", errors="ignore")
+    mappings: dict[str, str] = {}
+
+    # --- beginbfchar -------------------------------------------------------
+    for block in re.finditer(r"beginbfchar\s*(.*?)\s*endbfchar", text, flags=re.DOTALL):
+        content = block.group(1)
+        for match in re.finditer(r"<([0-9A-Fa-f]+)>\s+<([0-9A-Fa-f]+)>", content):
+            src, dst = match.group(1), match.group(2)
+            if src not in mappings:
+                mappings[src] = dst
+
+    # --- beginbfrange ------------------------------------------------------
+    for block in re.finditer(r"beginbfrange\s*(.*?)\s*endbfrange", text, flags=re.DOTALL):
+        content = block.group(1)
+
+        for line in content.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+
+            # 1. Array form: <src1> <srcN> [<dst1> <dst2> ...]
+            if '[' in line:
+                m = re.match(r"<([0-9A-Fa-f]+)>\s+<([0-9A-Fa-f]+)>\s+\[(.*)\]", line)
+                if not m:
+                    continue
+                start = int(m.group(1), 16)
+                end = int(m.group(2), 16)
+                dsts = re.findall(r"<([0-9A-Fa-f]+)>", m.group(3))
+                for i, code in enumerate(range(start, end + 1)):
+                    if i < len(dsts):
+                        src_hex = f"{code:0{len(m.group(1))}X}"
+                        if src_hex not in mappings:
+                            mappings[src_hex] = dsts[i]
+            else:
+                # 2. Direct range form: <src1> <srcN> <dstStart>
+                m = re.match(
+                    r"<([0-9A-Fa-f]+)>\s+<([0-9A-Fa-f]+)>\s+<([0-9A-Fa-f]+)>", line)
+                if not m:
+                    continue
+                start = int(m.group(1), 16)
+                end = int(m.group(2), 16)
+                dst_start = int(m.group(3), 16)
+                for i, code in enumerate(range(start, end + 1)):
+                    src_hex = f"{code:0{len(m.group(1))}X}"
+                    if src_hex not in mappings:
+                        dst_hex = f"{dst_start + i:0{len(m.group(3))}X}"
+                        mappings[src_hex] = dst_hex
+
+    # Yield in insertion order to keep deterministic behaviour
+    for src, dst in mappings.items():
+        yield src, dst
 
 
 def build_cmap(mapping: dict[str, str]) -> str:
@@ -102,16 +149,13 @@ def scramble_pdf(
                 cmap_stream = font_obj['/ToUnicode']
                 raw = cmap_stream.read_bytes()
                 entries = parse_cmap(raw)
-                if not entries:
-                    # nothing to shuffle
-                    continue
                 to_keep = list[tuple[str, str]]()
                 to_scramble = list[tuple[str, str]]()
                 for src, dst in entries:
                     dstc = bytes.fromhex(dst).decode(
                         'utf-16be', errors='ignore').strip('\x00')
                     if (
-                        dstc and
+                        len(dstc) == 1 and
                         (
                             selector is None
                             or (selector(dstc) != select_as_blacklist)
